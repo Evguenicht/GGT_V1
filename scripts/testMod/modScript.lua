@@ -1,0 +1,1 @@
+setExtensionUnloadMode("testMod", "manual")

@@ -1,0 +1,45 @@
+{
+    "attachments": [],
+    "resource_id": 34861,
+    "current_version_id": 62286,
+    "download_count": 0,
+    "resource_version_id": 62286,
+    "version_string": "1.0",
+    "last_update": 1749605733,
+    "rating_avg": 0,
+    "rating_count": 0,
+    "rating_sum": 0,
+    "resource_category_id": 7,
+    "resource_date": 1749605733,
+    "review_count": 0,
+    "tag_line": "Advanced grip controller that reacts dynamically to slip angle, grip loss, and tire behavior.",
+    "update_count": 0,
+    "path": "MBDW641L7\/62286\/",
+    "filename": "GGTv9.zip",
+    "title": "Tire Physics Update (GGT)",
+    "user_id": 698361,
+    "username": "LiXennn",
+    "tagid": "MBDW641L7",
+    "message": "I'm excited to share my mod called [B]GhostGripTraction[\/B] \u2014 a lightweight system that dynamically adjusts tire grip based on slip angle variation, sudden grip loss, and other subtle driving cues.\n\nIt\u2019s designed to make vehicle handling feel more natural and reactive, especially during transitions like cornering, sliding, or quick load shifts \u2014 without drastically altering the default behavior.\n\n[B]IMPORTANT NOTE:[\/B]\nThis mod [B]does not increase overall grip[\/B] like many others. In fact, you start with slightly [B]less[\/B] grip than default, but the [B]tire behavior is reworked[\/B] with compensations to improve weight transfer and control.\n\u27a4 Faster and smoother weight shifts = better vehicle balance and less unpredictable snap-oversteer.\n\u27a4 It\u2019s not meant to prevent drifting or force traction \u2014 just to make grip behavior more consistent",
+    "category_title": "",
+    "prefix_title": "Beta",
+    "via": "packed by repo on Wed, 11 Jun 2025 08:05:39 GMT",
+    "hashes": [
+        [
+            "scripts\/testMod\/modScript.lua",
+            "7c125cdce260338f"
+        ],
+        [
+            "lua\/vehicle\/extensions\/auto\/testMod.lua",
+            "f0c1e0cf610fbc35"
+        ],
+        [
+            "lua\/vehicle\/extensions\/tyreDataSlipDirt.lua",
+            "81ad85f79f126534"
+        ],
+        [
+            "lua\/vehicle\/extensions\/tyreDataSlip.lua",
+            "c820121dca752fc2"
+        ]
+    ]
+}
