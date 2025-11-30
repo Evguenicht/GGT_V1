@@ -283,26 +283,11 @@ local function getVehicleSlipAngle()
   return beta
 end
 
-local function limitThrottle()
-    -- Lire la valeur d'accélérateur du joueur (0 → 1)
-    local throttle = electrics.values.throttle or 0
-
-    -- La limiter à 50%
-    local limited = math.min(throttle, 0.5)
-
-    -- Réécrire la valeur de throttle dans le véhicule
-    electrics.values.throttle = limited
-end
-
-
-
 local function update(dt,slipspeedGlobal,slipDerivativeGlobal)
 --local function updateGFX(dt,slipspeedGlobal,slipDerivativeGlobal)
 	--local rawInput = electrics.values.rawThrottle  -- ce que le joueur a VRAIMENT mis
 	acc = acc + dt
 	while acc >= targetStep do
-    limitThrottle()
-
 	-- Total load
 	local beta = getVehicleSlipAngle()
 
