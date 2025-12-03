@@ -24,7 +24,7 @@ local tyre_dataSD = require("tyreDataSlipDirt")
 
 local M = {}
 local acc = 0
-local targetStep = 1 / 500
+local targetStep = 1 / 20
 
 
 local tyreGripTable = {}
@@ -95,7 +95,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 
 	
 	
-	local tyreWcoef = math.min((0.190+tyreWidth/2)/0.345,1)
+	local tyreWcoef = math.min(tyreWidth/0.345,1)
 	--local linearCoefficientTimer = 50*0.345*0.12/(tyreWcoef*28*tyreHcoef*(flancHeight/0.12))
 	--if slipDerivativeGlobal > 0 then
 	--	slipDerivativeGlobal = math.max(0, slipDerivativeGlobal - linearCoefficientTimer * dt)
@@ -123,7 +123,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 	local AngleRatio = angleR/math.max(AngleMax,0.001)
 	local dAngleR2 = (angleR2 - (angleRPrev2 or 0)) / dt
 	angleRPrev2 = angleR2
-	local maxanglegrip = math.min(math.max(tyreWidth/(0.480),0.5),1)*(1.5-softnessCoef)*(tyreWratio^0.5)/0.10
+	local maxanglegrip = 10e6 --math.min(math.max(tyreWidth/(0.480),0.5),1)*(1.5-softnessCoef)*(tyreWratio^0.5)/0.10
 	local ddAngleR2 = (dAngleR2 - (angleRPrev2D or 0)) / dt
 	local ddAngleR = (dAngleR - (angleRPrevD or 0)) / dt
 	local tyreWr = tyreWidth/TyremaxW
@@ -132,11 +132,14 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 	local dvelocity= (velocity -( velocityPrev or 0))/dt
 	local denomV=50
 	local denomV2=50
-	local coef = 0
-	--local tire = math.min(10,4*0.12/((math.min(1,treadCoef+0.1))^2*flancHeight))
+	local coef,n1,n2,n3,n4 = 0,1,1,1,1
+	--local coef2 = 0
+	if tyreWr == 1 then n1 = 0.85
+	end
+	local tire = math.min(10,4*0.12/flancHeight))
 	if (angleR-betaDeg)> 1 then
 		if tyreWr==1 and dvelocity<0 then
-			coef = sinusModifie(angleR,10)
+			coef = sinusModifie(angleR,math.max(10*(70-velocity)/70,tire))*math.cos(math.rad(90*(math.min(velocity/70,1)))) + math.max(0.9*math.min(angleR/(5*0.45*0.12/(math.max(tyreWidth,0.2)*flancHeight)),1)+0.1,0)*math.sin(math.rad(90*(math.min(velocity/70,1))))
 			if validSurfaceTypes[groundModelName] then
 				coef = sinusModifie(angleR,4)
 			end
@@ -148,7 +151,14 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 			coef =  sinusModifie(angleR,((math.max((30-(velocity or 0))/30,0))^0.5)*12)*(math.max((60-(velocity or 0))/60,0))
 		end
 	else
-		coef = math.max(0.6*math.min(angleR/(5*0.45*0.12/(math.max(tyreWidth,0.2)*flancHeight)),1.5),0.4)
+		if tyreWr==1 dvelocity > 0 then
+			coef = math.max(0.9*math.min(angleR/(5*0.45*0.12/(math.max(tyreWidth,0.2)*flancHeight)),1)+0.1,0)*math.cos(math.rad(90*(math.min(velocity/35,1)))) + sinusModifie(angleR,tire)*math.sin(math.rad(90*(math.min(velocity/35,1))))
+		elseif tyreWr=/=1 and dvelocity > 0 then
+			coef = math.max(0.8*math.min(angleR/(5*0.45*0.12/(math.max(tyreWidth,0.2)*flancHeight)),1.5)+0.1,0)*math.cos(math.rad(90*(math.min(velocity/35,1)))) + sinusModifie(angleR,tire)*math.sin(math.rad(90*(math.min(velocity/35,1))))
+		elseif tyreWr==1 and dvelocity < 0 then
+			coef = sinusModifie(angleR,tire)
+		else coef = math.max(0.7*math.min(angleR/(5*0.45*0.12/(math.max(tyreWidth,0.2)*flancHeight)),1.5)+0.5,0)*math.cos(math.rad(90*(math.min(velocity/35,1)))) + math.sin(math.rad(90*(math.min(velocity/35,1))))*sinusModifie(angleR,tire)
+		end
 	end
 	local straightBoost = 0
 	local angleStraigthBoost = 8-((math.max((45-(velocity or 0))/45,0))^0.5)*6
@@ -160,23 +170,27 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 	end
 	local sbm = (1+straightBoost)/2 --straightBoostMultiplier
 	if tyreWratio==1 and dvelocity > 0 then
-		straightBoost= ((math.max((27-(velocity or 0))/20,0))^0.5)*straightBoost/3
+		straightBoost= tyreWidth((math.max((27-(velocity or 0))/20,0))^0.5)*straightBoost/3
 	elseif tyreWratio==1 and dvelocity < 0 then
 		sbm = 1
 		straightBoost= 0 --straightBoost/3
-	elseif dvelocity < 0 and tyreWratio =/=1 then
-		straightBoost = ((math.max((50-(velocity or 0))/50,0))^0.5)*straightBoost
+	elseif dvelocity < 0 and tyreWratio =/=1 and ddAngleR>0 then
+		straightBoost = ((math.max((25-(velocity or 0))/25,0))^0.5)*straightBoost
 		if dAngleR < 0 then
-			straightBoost = (math.max((math.min(velocity/10,0.5))^0.5+0.5,1))*straightBoost*(1.5-softnessCoef)
+			straightBoost = (math.max((math.min(velocity/10,0.5))^0.5,1))*straightBoost*(1.5-softnessCoef)
 		end
 	elseif dvelocity > 0 and tyreWratio =/=1 then
-		coef = coef*(math.max((math.min(velocity/30,0.5))^0.5+0.2,1))
-		straightBoost = ((math.max((40-(velocity or 0))/30,0))^0.5)*straightBoost
+		coef = coef*(math.max((math.min(velocity/25,0.5))^0.5+0.2,1))
+		straightBoost = ((math.max((25-(velocity or 0))/25,0.3))^0.5)*straightBoost
 	end
 	
+	if betaDeg < tire then
+		coef = math.sin(math.rad(90*(angleR/tire)))*coef*math.cos(math.rad(90*(math.min(velocity/30,1))))*n1+math.sin(math.rad(90*(math.min(velocity/30,1))))*math.sin(math.rad(90*((angleR-betaDeg)/tire)))*coef*n2
+	else coef = math.max(math.sin(math.rad(90*(((tire-angleR)/tire)))*coef,0)*math.cos(math.rad(90*(math.min(velocity/30,1))))*n3+math.sin(math.rad(90*(math.min(velocity/30,1))))*math.sin(math.rad(90*((tire-(angleR-betaDeg))/tire)))*coef*n4
+	end
 
 	if slipDerivative > 0 then
-			local slipboost = sbm*(slipDerivative+slipDerivativeDerivative)/300 -- montée lente pour petites dérivées
+			local slipboost = (1+straightBoost*0.1)*sbm*(slipDerivative+slipDerivativeDerivative)/300 -- montée lente pour petites dérivées
 			if slipDerivativeDerivative > 0 then
 				activeBoost = math.min(maxanglegrip, activeBoost + slipboost * dt)
 			else
@@ -194,7 +208,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 		if dAngleR2 > 0 then
 			local contribution2 = angleTriche*dAngleR2/denomV2 -- montée lente pour petites dérivées boostAngle * rotateAngleCoef *
 			local contribution3 = angleTriche*ddAngleR2/denomV2 -- montée lente pour petites dérivées boostAngle * rotateAngleCoef *
-			local contribution = (contribution2 + contribution3)*coef*maxanglegrip*sbm
+			local contribution = (contribution2 + contribution3)*coef*maxanglegrip*sbm*(1+straightBoost*0.1)
 			if ddAngleR2 > 0 then
 				--local contribution2 = math.min( 0.3 * math.sin(dAngleR2 * math.pi/2), 0.3)
 				angleRMemory2 =  math.min(maxanglegrip,angleRMemory2 + contribution * dt)
@@ -207,7 +221,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 		if dAngleR > 0 then
 			local contribution2 = angleTriche*dAngleR2/denomV2 -- montée lente pour petites dérivées boostAngle * rotateAngleCoef *
 			local contribution3 = angleTriche*ddAngleR2/denomV2 -- montée lente pour petites dérivées boostAngle * rotateAngleCoef *
-			local contribution = (contribution2 + contribution3)*coef*maxanglegrip*sbm
+			local contribution = (contribution2 + contribution3)*coef*maxanglegrip*sbm*(1+straightBoost*0.1)
 			if ddAngleR > 0 then
 				--local contribution2 = math.min( 0.3 * math.sin(dAngleR2 * math.pi/2), 0.3)
 				angleRMemory =  math.min(maxanglegrip,angleRMemory + contribution * dt)
@@ -219,7 +233,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 		end
 	end
 
-	local tyreGrip = (1 + (((1-tyreWcoef)/10)^2)*8)*(1-math.min(velocity/250))
+	local tyreGrip = 0.98--(1 + (((1-tyreWcoef)/10)^2)*8)*(1-math.min(velocity/250))
 	local correction2 =(math.min(math.max(velocity/(35*3)+0.73,1),1.3)*(0.667+treadCoef/1.5))-- (1.0 + slipvariance) *(1.0 + 0.6*activeBoost*(math.min(tyreWidth/0.345,1))*math.min(1, 0.67+(1-softnessCoef)/3)) * (1+angleRMemory*tyreWcoef) * (1+angleRMemory2*tyreWcoef*tyreHcoef) * (1+0.05*Angle2Coef) * (1+Angle2Ratio*0.5)
 	
 	local correction = 0
@@ -231,15 +245,15 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 		if angularVel == 0 then
 			slipvariance = 2 -- previous value : 0.3
 		end
-		correction = (1.0 + slipvariance)*(1+angleRMemory*tyreWcoef*correction2*tyreWr) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr)*(1+activeBoost*tyreWr)*(1+straightBoost*0.1*(1+ 0.1 *math.max((50-(velocity or 0))/50,0))) --* (1+0.05*Angle2Coef) * (1+Angle2Ratio*0.5) --* (1+angleRMemory2*tyreWcoef*tyreHcoef*(0.5+Angle2Ratio/2)) * (1+0.2*Angle2Coef) * (1+Angle2Ratio*0.7)
+		correction = (1.0 + slipvariance)*(1+angleRMemory*correction2*tyreWr*math.min(1+0.2*0.35/tireWidth,1.1)) * (1+angleRMemory2*math.min(1+0.2*0.35/tireWidth,1.1)*correction2*tyreWr)*(1+activeBoost*tyreWr)--*(1+straightBoost*0.1*(1+ 0.1 *math.max((50-(velocity or 0))/50,0))) --* (1+0.05*Angle2Coef) * (1+Angle2Ratio*0.5) --* (1+angleRMemory2*tyreWcoef*tyreHcoef*(0.5+Angle2Ratio/2)) * (1+0.2*Angle2Coef) * (1+Angle2Ratio*0.7)
 
 		--tyreGrip = tyreGrip * correction -- (1.0 + slipvariance) --* adherence 
 	else
 		--tyreGrip = 0.9433962
-		tyreGrip = 0.98 * tyreGrip -- * math.max(0.9,math.min(1,downForceRaw/(2*tyreWidth*flancHeight/0.12)))
+		tyreGrip = 1 * tyreGrip -- * math.max(0.9,math.min(1,downForceRaw/(2*tyreWidth*flancHeight/0.12)))
 		slipvariance = tyre_dataS.SlipToGrip.slicks[math.floor(slipspeed)] or 0
 		slipvariance = slipvariance * 0.8
-		correction = (1.0 + slipvariance)*(1+straightBoost*0.1*(1+ 0.1 *math.max((200-(velocity or 0))/200,0))) *(1+activeBoost*tyreWr) *(1+angleRMemory*tyreWcoef*correction2*tyreWr) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr)
+		correction = (1.0 + slipvariance) *(1+activeBoost*tyreWr) *(1+angleRMemory*tyreWcoef*correction2*tyreWr) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr)-- *(1+straightBoost*0.1*(1+ 0.1 *math.max((200-(velocity or 0))/200,0)))
 --		correction = (1.0 + slipvariance) *(1.0 + 0.5*activeBoost*tyreWcoef*(0.67+(1-softnessCoef)/3)*tyreWcoef*correction2*tyreWr) *(1+angleRMemory*tyreWcoef*correction2*tyreWr) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr)
 
 		--(1.0 + slipvariance) *((1.0 + (0.4+math.min(0.3, 0.3 * math.sin(math.pi * velocity / (2*30*tyreWidth))))*activeBoost*(math.min(tyreWidth/0.345,1))*math.min(1, 0.67+(1-softnessCoef)/3)) * (1+angleRMemory*tyreWspeedCoef*tyreWcoef*(0.5+AngleRatio/2)) * (1+angleRMemory2*tyreWcoef*tyreHcoef*(0.5+Angle2Ratio/2)) *tyreWcoef --(1+0.05*Angle2Coef) * (1+Angle2Ratio*0.5))--*tyreHcoef -- * angleGrip  * adherence
@@ -424,6 +438,14 @@ local function update(dt,slipspeedGlobal,slipDerivativeGlobal)
 		end
 		if AngleMax<AngleR then
 			AngleMax=AngleR
+		end
+		if softnessCoef<0.2 then
+			targetStep = 1/500
+		elseif softnessCoef < 0.6 then
+			targetStep = 1/200
+		elseif softnessCoef < 0.4 then
+			targetStep = 1/125
+		else targetStep = 1/50
 		end
         wheelCache[i] = w
     end
