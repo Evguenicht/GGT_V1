@@ -65,7 +65,16 @@ function sinusModifie(deg, tire)
     end
 end
 
-
+local function getTWTFriction(wheelID)
+  local t = rawget(_G, "TWT_Friction")
+  if type(t) == "table" then
+    local v = t[wheelID]
+    if type(v) == "number" then
+      return v
+    end
+  end
+  return nil
+end
 
 local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth, 
 	groundModelName, velocity, percentageLoad, angleR, propulsionTorque,slipspeedGlobal,dt,totalLoad,flancHeight,softnessCoef,angleTriche,slipDerivativeGlobal, 
@@ -74,6 +83,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 	local validSurfaceTypes = {
         DIRT = true, SAND = true, MUD = true, GRAVEL = true
     }
+	local twtCoef = getTWTFriction(wheelID)
 
 	local slipvariance=0
 	local slipVelocity = CalcSlip(angleR,velocity,angularVel,radius)
@@ -204,6 +214,18 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 	end
 
 	local tyreGrip = 0.98
+	local twCoef = 1
+	if twtCoef then
+		if softnessCoef<0.2 then
+				twCoef = (twtCoef-0.8)*5
+			elseif softnessCoef < 0.6 then
+				twCoef = (twtCoef-0.5)*2
+			elseif softnessCoef < 0.4 then
+				twCoef = (twtCoef-0.25)*(1/0.75)
+			else twCoef = 1
+			end
+	  tyreGrip = twtCoef*tyreGrip
+	end
 	local correction2 =(math.min(math.max(velocity/(35*3)+0.73,1),1.3)*(0.667+treadCoef/1.5))
 	
 	local correction = 0
@@ -224,7 +246,7 @@ local function CalculateGrip(wheelID, treadCoef, radius, angularVel, tyreWidth,
 		tyreGrip = 1 * tyreGrip 
 
 		slipvariance= (math.exp(-slipspeed*20/1000+8)/3000)*0.64
-		correction = (1.0 + slipvariance) *(1+activeBoost*tyreWr) *(1+angleRMemory*tyreWcoef*correction2*tyreWr) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr)-- *(1+straightBoost*0.1*(1+ 0.1 *math.max((200-(velocity or 0))/200,0)))
+		correction = (1.0 + slipvariance)*(1+activeBoost*tyreWr*twCoef) *(1+angleRMemory*tyreWcoef*correction2*tyreWr*twCoef) * (1+angleRMemory2*tyreWcoef*correction2*tyreWr*twCoef)-- *(1+straightBoost*0.1*(1+ 0.1 *math.max((200-(velocity or 0))/200,0)))
 
 
 	end
